@@ -1,0 +1,48 @@
+stages:
+  - compile
+  - build
+  - build-release
+
+compile:
+  stage: compile
+  image: golang:1.15.5
+  tags:
+    - aliyun-sh
+  script:
+    - make
+  cache:
+    paths:
+      - bin/msp_backend
+  only:
+    - master
+
+build:
+  stage: build
+  image: docker:latest
+  tags:
+    - aliyun-sh
+  before_script:
+    - echo $HARBOR_PASSWORD | docker login $HARBOR_HOST -u $HARBOR_USERNAME --password-stdin    
+  script:
+    - docker build -t $HARBOR_HOST/bifrost/msp-backend:nightly-$CI_COMMIT_SHA .
+    - docker push $HARBOR_HOST/bifrost/msp-backend:nightly-$CI_COMMIT_SHA
+  cache:
+    paths:
+      - bin/msp_backend
+  only:
+    - master
+
+build-release:
+  stage: build-release
+  image: docker:latest
+  tags:
+    - aliyun-sh
+  dependencies:
+    - build
+  before_script:
+    - echo $HARBOR_PASSWORD | docker login $HARBOR_HOST -u $HARBOR_USERNAME --password-stdin  
+  script:
+    - docker tag $HARBOR_HOST/bifrost/msp-backend:nightly-$CI_COMMIT_SHA $HARBOR_HOST/bifrost/msp-backend:$CI_COMMIT_REF_NAME
+    - docker push $HARBOR_HOST/bifrost/msp-backend:$CI_COMMIT_REF_NAME
+  only:
+    - tags
