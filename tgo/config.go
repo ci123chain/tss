@@ -59,8 +59,8 @@ type DbPool struct {
 }
 
 type DbBase struct {
-	Address  string `mapstructure:"address" json:"address" yaml:"address"`
-	Port     int    `mapstructure:"port" json:"port" yaml:"port"`
+	Host     string `mapstructure:"host" json:"host" yaml:"host"`
+	Port     string    `mapstructure:"port" json:"port" yaml:"port"`
 	User     string `mapstructure:"user" json:"user" yaml:"user"`
 	Password string `mapstructure:"password" json:"password" yaml:"password"`
 	DbName   string `json:"-"`

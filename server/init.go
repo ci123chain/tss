@@ -34,7 +34,7 @@ func configRuntime() {
 func sqlMigrate() {
 	//docker 环境下，根据docker file 配置，sql文件在统计db目录下
 	migrations := &migrate.FileMigrationSource{
-		Dir: "./db",
+		Dir: "/root/db",
 	}
 	Orm, err := tgo.NewDaoMysql().GetOrm()
 	if err != nil {

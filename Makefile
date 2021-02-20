@@ -1,13 +1,13 @@
-PROG=bin/msp_backend
+PROG=bin/badkend
 
 
 SRCS=.
 
 # 安装目录
-INSTALL_PREFIX=/usr/local/msp_backend
+INSTALL_PREFIX=/usr/local/badkend
 
 # 配置安装的目录
-CONF_INSTALL_PREFIX=/usr/local/msp_backend
+CONF_INSTALL_PREFIX=/usr/local/badkend
 
 # git commit hash
 COMMIT_HASH=$(shell git rev-parse --short HEAD || echo "GitNotFound")
@@ -18,11 +18,11 @@ BUILD_DATE=$(shell date '+%Y-%m-%d %H:%M:%S')
 # 编译条件
 CFLAGS = -ldflags "-s -w -X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=$(BUILD_DATE)\""
 
-all:
+release:
 	if [ ! -d "./bin/" ]; then \
 	mkdir bin; \
 	fi
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=vendor $(CFLAGS) -o $(PROG) $(SRCS)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(CFLAGS) -o $(PROG) $(SRCS)
 
 # 编译race版本
 race:
@@ -35,10 +35,10 @@ race:
 RELEASE_DATE = $(shell date '+%Y%m%d%H%M%S')
 RELEASE_VERSION = $(shell git rev-parse --short HEAD || echo "GitNotFound")
 RELEASE_DIR=release_bin
-RELEASE_BIN_NAME=msp_backend
-release:
+RELEASE_BIN_NAME=badkend
+local:
 	if [ ! -d "./$(RELEASE_DIR)/$(RELEASE_DATE)_$(RELEASE_VERSION)" ]; then \
-	mkdir ./$(RELEASE_DIR)/$(RELEASE_DATE)_$(RELEASE_VERSION); \
+	mkdir -p ./$(RELEASE_DIR)/$(RELEASE_DATE)_$(RELEASE_VERSION); \
 	fi
 	go build  $(CFLAGS) -o $(RELEASE_DIR)/$(RELEASE_DATE)_$(RELEASE_VERSION)/$(RELEASE_BIN_NAME)_linux_amd64 $(SRCS)
 
@@ -54,7 +54,7 @@ install:
 clean:
 	rm -rf ./bin
 	
-	rm -rf $(INSTALL_PREFIX)/bin/msp_backend
+	rm -rf $(INSTALL_PREFIX)/bin/badkend
 	
 	rm -rf $(CONF_INSTALL_PREFIX)
 

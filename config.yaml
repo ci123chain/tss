@@ -21,7 +21,7 @@ redis:
 
 #Mysql
 mysql:
-  dbname: "MSP_MYSQL_DBNAME"
+  dbname: "MYSQL_DATABASE_DB1_NAME"
   pool:
     pool-min-cap: 10
     pool-ex-cap: 5
@@ -30,10 +30,10 @@ mysql:
     pool-wait-count: 1000
     pool-wai-timeout: 30
   write:
-    address: "MSP_MYSQL_WRITE_ADDRESS_PORT" #192.168.2.80:3306
-    port: 3306
-    user: "MSP_MYSQL_WRITE_USER"
-    password: "MSP_MYSQL_WRITE_PASSWORD"
+    host: "MYSQL_DATABASE_DB1_HOST_WRITE" #192.168.2.80
+    port: "MYSQL_DATABASE_DB1_PORT"
+    user: "MYSQL_DATABASE_DB1_USERNAME"
+    password: "MYSQL_DATABASE_DB1_PASSWORD"
 
 #RabbitMQ
 rabbitmq:

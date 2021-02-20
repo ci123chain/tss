@@ -28,6 +28,7 @@ require (
 	github.com/swaggo/swag v1.7.0
 	github.com/urfave/cli v1.22.5
 	github.com/youtube/vitess v2.1.1+incompatible
+	gitlab.oneitfarm.com/bifrost/gosdk v0.0.0-20201208092214-ba15e1901816
 	gitlab.oneitfarm.com/bifrost/logrus-redis-hook v0.0.1
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	google.golang.org/grpc v1.35.0

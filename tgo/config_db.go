@@ -21,7 +21,7 @@ func NewConfigDb() *ConfigDb {
 }
 
 //type ConfigDbBase struct {
-//	Address  string
+//	Host  string
 //	Port     int
 //	User     string
 //	Password string

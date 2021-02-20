@@ -75,12 +75,12 @@ func initDb(isRead bool) (resultDb *gorm.DB, err error) {
 		dbConfig = config.Mysql.GetWrite()
 	}
 	// 判断配置可用性
-	if dbConfig.Address == "" || dbConfig.DbName == "" {
+	if dbConfig.Host == "" || dbConfig.DbName == "" {
 		err = errors.New("dbConfig is null")
 		return
 	}
-	address := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4,utf8&parseTime=True&loc=Local", dbConfig.User,
-		dbConfig.Password, dbConfig.Address, dbConfig.Port, dbConfig.DbName)
+	address := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4,utf8&parseTime=True&loc=Local", dbConfig.User,
+		dbConfig.Password, dbConfig.Host, dbConfig.Port, dbConfig.DbName)
 	resultDb, err = gorm.Open("mysql", address)
 	if err != nil {
 		LogErrorw(LogNameMysql, "connect mysql error", err)

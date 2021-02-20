@@ -3,6 +3,7 @@
 ### 一.框架简介
 
 此web框架已gin为核心，包含了mysq、redis、rabbitmq、log、es等基础组件。
+此框架内dockerfile和makefile已适配中台的打镜像流程，一般情况下不需要对这两个文件进行修改。
 
 ~~~tree
 ├── controller 	//控制器
