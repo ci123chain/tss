@@ -76,5 +76,14 @@
 
 参考控制器下 log_platform.go 文件
 
+### 五.中台服务间调用
+> gosdk使用和服务间调用有问题和建议可以联系联系基础架构部：张超
+
+中台服务间调用通过[gosdk](https://gitlab.oneitfarm.com/bifrost/gosdk)进行调用，gosdk如何使用可以参考服务内的readme文档。 
+
+为了降低使用成本，我们对gosdk进行了一次封装[requester](https://gitlab.oneitfarm.com/ci123sdk/requester)包，并提供了一个案例[account](https://gitlab.oneitfarm.com/ci123sdk/account)服务的接口封装。
+
+【强烈建议】：对子服务（比如A）的调用封装成单独的包，并在gitlab.oneitfarm.com/ci123sdk group下创建项目A，将服务A的接口调用封装。这样其他项目（人）在接入A项目时，不需要再重复封装此部分内容。  
+简单来说就是每个服务在ci123sdk的group下创建项目，后续所有对此服务调用的封装都在此项目中，所有引用此服务的服务或应用，只需要引用此包进行开发，如果支持接口不全就在此项目中完善并打新的tag增加版本。
 
 有任何疑问或者建议，欢迎随时联系基础架构部：陶圣
