@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"go-api-frame/pconst"
 	"go-api-frame/tgo"
 	"io/ioutil"
-	"go-api-frame/pconst"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -117,19 +117,6 @@ func GetESSumInterval(startTime, endTime int64) (interval, timeUnit string) {
 	}
 	interval = "1d"
 	timeUnit = "d"
-	return
-}
-
-//根据CPU核数获取理论上的阈值，cpu核数大于等于1，默认百分比为60%
-func GetCpuThreshold(cpuCoreCount int) (count int, cpuThresholdFloat float64) {
-	if cpuCoreCount <= 0 {
-		count = 1
-	} else {
-		count = cpuCoreCount
-	}
-	cpuThreshold := count * pconst.BASE_CPU_THRESTHOLD
-	cpuThresholdStr := strconv.Itoa(cpuThreshold)
-	cpuThresholdFloat, _ = strconv.ParseFloat(cpuThresholdStr, 64)
 	return
 }
 
