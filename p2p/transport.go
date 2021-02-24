@@ -81,15 +81,15 @@ type ConnFilterFunc func(ConnSet, net.Conn, []net.IP) error
 // and refuses new ones if they come from a known ip.
 func ConnDuplicateIPFilter() ConnFilterFunc {
 	return func(cs ConnSet, c net.Conn, ips []net.IP) error {
-		for _, ip := range ips {
-			if cs.HasIP(ip) {
-				return ErrRejected{
-					conn:        c,
-					err:         fmt.Errorf("IP<%v> already connected", ip),
-					isDuplicate: true,
-				}
-			}
-		}
+		//for _, ip := range ips {
+		//	if cs.HasIP(ip) {
+		//		return ErrRejected{
+		//			conn:        c,
+		//			err:         fmt.Errorf("IP<%v> already connected", ip),
+		//			isDuplicate: true,
+		//		}
+		//	}
+		//}
 
 		return nil
 	}

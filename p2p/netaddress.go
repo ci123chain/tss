@@ -5,13 +5,13 @@
 package p2p
 
 import (
+	"CipherMachine/config"
+	tls2 "CipherMachine/p2p/tls"
 	"encoding/hex"
 	"flag"
 	"fmt"
 	log2 "github.com/tendermint/tendermint/libs/log"
 	"net"
-	"CipherMachine/config"
-	tls2 "CipherMachine/p2p/tls"
 	"strconv"
 	"strings"
 	"time"
@@ -253,15 +253,16 @@ func (na *NetAddress) DialTimeout2(timeout time.Duration) (net.Conn, error) {
 }
 
 func (na *NetAddress) DialTimeout(timeout time.Duration) (net.Conn, error) {
-	loger.Info("TLS Option:", "tls", Config.P2P.TLSOption)
-	loger.Info("TLS Config:", "local_bind_address_ip",Config.TLSConfig.BindAddressIP,
-		"local_bind_port", Config.TLSConfig.BindAddressPort,
-		"remote_host", Config.TLSConfig.RemoteAddressHOST,
-		"remote_port", Config.TLSConfig.RemoteAddressPort,
-		"remote_server_name", Config.TLSConfig.RemoteServerName,
-		"remote_insecure_skip_verify", Config.TLSConfig.RemoteTLSInsecureSkipVerify,
-	)
 	if na.TLS {
+		loger.Info("TLS Option:", "tls", Config.P2P.TLSOption)
+		loger.Info("TLS Config:", "local_bind_address_ip",Config.TLSConfig.BindAddressIP,
+			"local_bind_port", Config.TLSConfig.BindAddressPort,
+			"remote_host", Config.TLSConfig.RemoteAddressHOST,
+			"remote_port", Config.TLSConfig.RemoteAddressPort,
+			"remote_server_name", Config.TLSConfig.RemoteServerName,
+			"remote_insecure_skip_verify", Config.TLSConfig.RemoteTLSInsecureSkipVerify,
+			"localhost", Config.P2P.RootDir,
+		)
 		///tls peer
 		if Config.P2P.TLSOption {
 			Config.TLSConfig.Mutex.Lock()

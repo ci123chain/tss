@@ -34,6 +34,7 @@ const (
 	SigningMsg = "signingMsg"
 )
 
+// secret id
 type SessionID string
 
 // TssReactor handles tss sign and verify by broadcasting amongst peers.

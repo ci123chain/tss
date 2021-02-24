@@ -499,9 +499,9 @@ func (sw *Switch) dialPeersAsync(netAddrs []*NetAddress) {
 			if err != nil {
 				switch err.(type) {
 				case ErrSwitchConnectToSelf, ErrSwitchDuplicatePeerID, ErrCurrentlyDialingOrExistingAddress:
-					sw.Logger.Debug("Error dialing peer", "err", err)
+					sw.Logger.Debug("Error dialing peer", "err", err, "localhost", sw.nodeInfo)
 				default:
-					sw.Logger.Error("Error dialing peer", "err", err)
+					sw.Logger.Error("Error dialing peer", "err", err, "localhost", sw.nodeInfo)
 				}
 			}
 		}(i)
@@ -640,6 +640,7 @@ func (sw *Switch) acceptRoutine() {
 			continue
 		}
 
+		sw.Logger.Error("enter addpeer from accept", "node", sw.nodeInfo.ID())
 		if err := sw.addPeer(p); err != nil {
 			sw.transport.Cleanup(p)
 			if p.IsRunning() {
@@ -699,6 +700,7 @@ func (sw *Switch) addOutboundPeerWithConfig(
 		return err
 	}
 
+	sw.Logger.Error("enter addpeer from out", "node", sw.nodeInfo.ID())
 	if err := sw.addPeer(p); err != nil {
 		sw.transport.Cleanup(p)
 		if p.IsRunning() {
@@ -774,6 +776,7 @@ func (sw *Switch) addPeer(p Peer) error {
 	// so that if Receive errors, we will find the peer and remove it.
 	// Add should not err since we already checked peers.Has().
 	if err := sw.peers.Add(p); err != nil {
+		sw.Logger.Error("switch peer", "list", sw.peers.list, "localnode", sw.nodeInfo.ID(), "err", err)
 		return err
 	}
 	sw.metrics.Peers.Add(float64(1))
@@ -784,6 +787,6 @@ func (sw *Switch) addPeer(p Peer) error {
 	}
 
 	sw.Logger.Info("Added peer", "peer", p)
-
+	sw.Logger.Debug("switch peer", "list", sw.peers.list, "localnode", sw.nodeInfo.ID())
 	return nil
 }
