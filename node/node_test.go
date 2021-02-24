@@ -207,10 +207,10 @@ func TestReadKeygenData(t *testing.T) {
 	time.Sleep(1)
 }
 
-func start3node(t *testing.T) (n1, n2, n3 *Node){
+func start3node(t *testing.T) (n, n2, n3 *Node){
 	root := "../test1"
 	//defer os.RemoveAll(root)
-	n := getNewNode(root)
+	n = getNewNode(root)
 	err := n.Start()
 	require.NoError(t, err)
 
