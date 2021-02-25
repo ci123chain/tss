@@ -155,7 +155,7 @@ func (tsr *TssReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		tsr.Logger.Error("Error parseWire message", "err", err)
 		return
 	}
-
+	tsr.Logger.Debug("receive msg", "from", msg.From.Id, "me", tsr.localAddr)
 	if msg.PmsgType == KeygenMsg {
 		//no keygen
 		if !tsr.keygenRSwitch[msg.Sid] {
@@ -172,7 +172,7 @@ func (tsr *TssReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			x := new(big.Int)
 			x.SetBytes(msg.Msg)
 			if err := tsr.Signing(x, msg.Sid); err != nil {
-				common.Logger.Error(err)
+				tsr.Logger.Error("signing err", err)
 				return
 			}
 		}
@@ -187,9 +187,15 @@ func (tsr *TssReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		//		return
 		//	}
 		//}
-		_, err := tsr.localParty[msg.Sid].Update(pMsg)
+		ok, err := tsr.localParty[msg.Sid].Update(pMsg)
 		if err != nil {
 			tsr.signingCh[msg.Sid].errCh <- err
+		}
+		time.Sleep(2 * time.Second)
+		if ok {
+			tsr.Logger.Debug("receive success", "local round", tsr.localParty[msg.Sid].(*signing.LocalParty).BaseParty.String(), "me", tsr.localAddr)
+		} else {
+			tsr.Logger.Debug("update response not ok")
 		}
 		return
 	}
@@ -254,7 +260,7 @@ func (tsr *TssReactor) keygenRoutine(partyIndex int, party *keygen.LocalParty, p
 	for {
 		select {
 		case err := <- tsr.keygenCh[sid].errCh:
-			common.Logger.Errorf("Error: %s", err)
+			tsr.Logger.Error("keygen error", err)
 			return
 
 		case msg := <- tsr.keygenCh[sid].outCh:
@@ -268,7 +274,7 @@ func (tsr *TssReactor) keygenRoutine(partyIndex int, party *keygen.LocalParty, p
 				}
 			} else { // point-to-point
 				if dest[0].Id == msg.GetFrom().Id {
-					common.Logger.Errorf("Error: %s", errors.New(fmt.Sprintf("party %d tried to send a message to itself (%d)", dest[0].Index, msg.GetFrom().Index)))
+					tsr.Logger.Error("msg error", "Error: %s", errors.New(fmt.Sprintf("party %d tried to send a message to itself (%d)", dest[0].Index, msg.GetFrom().Index)))
 					return
 				}
 				tsr.TrySendByPeerID(party, sid, dest[0].Id, threshold, msg, KeygenMsg, nil, tsr.keygenCh[sid].errCh)
@@ -370,7 +376,7 @@ func (tsr *TssReactor) signingRoutine(msg *big.Int, party *signing.LocalParty, s
 	for {
 		select {
 		case err := <-tsr.signingCh[sid].errCh:
-			common.Logger.Errorf("Error: %s", err)
+			tsr.Logger.Error("signing err", err)
 			return
 
 		case pmsg := <-tsr.signingCh[sid].outCh:
@@ -384,7 +390,7 @@ func (tsr *TssReactor) signingRoutine(msg *big.Int, party *signing.LocalParty, s
 				}
 			} else {
 				if dest[0].Id == pmsg.GetFrom().Id {
-					common.Logger.Errorf("Error: %s", errors.New(fmt.Sprintf("party %d tried to send a message to itself (%d)", dest[0].Index, pmsg.GetFrom().Index)))
+					tsr.Logger.Error("msg error", "Error: %s", errors.New(fmt.Sprintf("party %d tried to send a message to itself (%d)", dest[0].Index, pmsg.GetFrom().Index)))
 					return
 				}
 				tsr.TrySendByPeerID(party, sid, dest[0].Id, tsr.saveDatas[sid].ConfigSaveData.Thresold, pmsg, SigningMsg, msg, tsr.signingCh[sid].errCh)
@@ -409,9 +415,9 @@ func (tsr *TssReactor) signingRoutine(msg *big.Int, party *signing.LocalParty, s
 			}
 			ok := ecdsa.Verify(&pk, msg.Bytes(), sigR, sumS)
 			if !ok {
-				common.Logger.Info("ECDSA verify failed.")
+				tsr.Logger.Info("ECDSA verify failed.")
 			}
-			common.Logger.Info("ECDSA signing done.")
+			tsr.Logger.Info("ECDSA signing done.")
 			// END ECDSA verify
 			return
 		}
@@ -448,10 +454,13 @@ func (tsr *TssReactor) TrySendByPeerID(party tss.Party, sid SessionID, pid strin
 		return
 	}
 	src := tsr.Switch.Peers().Get(p2p.ID(pid))
-	queued := src.TrySend(TssChannel, tssbz)
+	if src == nil {
+		panic(fmt.Sprintf("cannot find this pid: %s in switch", pid))
+	}
+ 	queued := src.TrySend(TssChannel, tssbz)
 	for {
 		if !queued {
-			tsr.Logger.Debug("Send queue is full, drop block request", "peer", src.ID())
+			tsr.Logger.Debug("Send queue is full, try again", "peer", src.ID())
 			time.Sleep(1 * time.Second)
 			queued = src.TrySend(TssChannel, tssbz)
 		} else {

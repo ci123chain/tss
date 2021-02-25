@@ -306,7 +306,7 @@ func (c *MConnection) String() string {
 }
 
 func (c *MConnection) flush() {
-	c.Logger.Debug("Flush", "conn", c)
+	//c.Logger.Debug("Flush", "conn", c)
 	err := c.bufConnWriter.Flush()
 	if err != nil {
 		c.Logger.Error("MConnection flush failed", "err", err)
@@ -337,7 +337,7 @@ func (c *MConnection) Send(chID byte, msgBytes []byte) bool {
 	}
 
 	//c.Logger.Debug("Send", "channel", chID, "conn", c, "msgBytes", fmt.Sprintf("%X", msgBytes))
-	c.Logger.Debug("Send", "channel", chID, "conn", c)
+	//c.Logger.Debug("Send", "channel", chID, "conn", c)
 
 	// Send message to channel.
 	channel, ok := c.channelsIdx[chID]
@@ -625,7 +625,7 @@ FOR_LOOP:
 			}
 			if msgBytes != nil {
 				//c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", fmt.Sprintf("%X", msgBytes))
-				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID)
+				//c.Logger.Debug("Received bytes", "chID", pkt.ChannelID)
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
 			}
@@ -834,7 +834,7 @@ func (ch *Channel) writePacketMsgTo(w io.Writer) (n int64, err error) {
 // complete. NOTE message bytes may change on next call to recvPacketMsg.
 // Not goroutine-safe
 func (ch *Channel) recvPacketMsg(packet PacketMsg) ([]byte, error) {
-	ch.Logger.Debug("Read PacketMsg", "conn", ch.conn)
+	//ch.Logger.Debug("Read PacketMsg", "conn", ch.conn)
 	var recvCap, recvReceived = ch.desc.RecvMessageCapacity, len(ch.recving) + len(packet.Bytes)
 	if recvCap < recvReceived {
 		return nil, fmt.Errorf("Received message exceeds available capacity: %v < %v", recvCap, recvReceived)

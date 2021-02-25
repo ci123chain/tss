@@ -2,16 +2,12 @@ package node
 
 import (
 	"CipherMachine/config"
-	"CipherMachine/threshold"
 	"CipherMachine/tsslib/ecdsa/keygen"
-	"CipherMachine/tsslib/tss"
 	"encoding/json"
-	"fmt"
 	create "github.com/ci123chain/ci123chain/sdk/init"
 	"github.com/ci123chain/ci123chain/sdk/validator"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/log"
 	"io/ioutil"
 	"math/big"
@@ -22,10 +18,7 @@ import (
 	"time"
 )
 
-type ts struct {
-	Bi *big.Int
-}
-
+//生成3个本地测试节点，需手动修改生成后的config.toml中相应port，已生成好的模版在test1、test2、test3文件夹中。
 func TestPrepare3peersConfig(t *testing.T) {
 	root1 := "../test1"
 	root2 := "../test2"
@@ -60,13 +53,7 @@ func TestPrepare3peersConfig(t *testing.T) {
 	writeConfigFile(root3, initFiles3)
 }
 
-func writeConfigFile(root string, file *create.InitFiles) {
-	ioutil.WriteFile(filepath.Join(root, "config/config.toml"), file.ConfigBytes, os.ModePerm)
-	ioutil.WriteFile(filepath.Join(root, "config/node_key.json"), file.NodeKeyBytes, os.ModePerm)
-	ioutil.WriteFile(filepath.Join(root, "config/priv_validator_key.json"), file.PrivValidatorKeyBytes, os.ModePerm)
-	ioutil.WriteFile(filepath.Join(root, "data/priv_validator_state.json"), file.PrivValidatorStateBytes, os.ModePerm)
-}
-
+//本地启动3个节点
 func Test3NodeStartWithConfig(t *testing.T) {
 	n, _, _ := start3node(t)
 	select {
@@ -74,6 +61,7 @@ func Test3NodeStartWithConfig(t *testing.T) {
 	}
 }
 
+//本地启动节点1
 func TestRunNode1(t *testing.T) {
 	root1 := "../test1"
 	//defer os.RemoveAll(root)
@@ -87,6 +75,7 @@ func TestRunNode1(t *testing.T) {
 	}
 }
 
+//本地启动节点2
 func TestRunNode2(t *testing.T) {
 	root2 := "../test2"
 	//defer os.RemoveAll(root2)
@@ -100,6 +89,7 @@ func TestRunNode2(t *testing.T) {
 	}
 }
 
+//本地启动节点3
 func TestRunNode3(t *testing.T) {
 	root3 := "../test3"
 	//defer os.RemoveAll(root3)
@@ -113,6 +103,7 @@ func TestRunNode3(t *testing.T) {
 	}
 }
 
+//本地启动3个节点，并进行门限签名初始化
 func TestKeygen(t *testing.T) {
 	n, _, _ := start3node(t)
 	time.Sleep(10 * time.Second)
@@ -123,9 +114,9 @@ func TestKeygen(t *testing.T) {
 	}
 }
 
+//本地启动3个节点，并进行门限签名，需提前调用keygen
 func TestSigning(t *testing.T) {
 	n, _, _ := start3node(t)
-
 	time.Sleep(10 * time.Second)
 	err := n.Signing(big.NewInt(42), "1")
 	if err != nil {
@@ -137,62 +128,7 @@ func TestSigning(t *testing.T) {
 	}
 }
 
-func TestCdcMarshalUnmarshal(t *testing.T) {
-	cdc := amino.NewCodec()
-	cdc.RegisterConcrete(&threshold.TssMessage{}, "", nil)
-	tmsg := &threshold.TssMessage{
-		Sid: "1",
-	}
-	bz, err := cdc.MarshalBinaryBare(tmsg)
-	if err != nil {
-		panic(err)
-	}
-	var ttmsg threshold.TssMessage
-	err = cdc.UnmarshalBinaryBare(bz, &ttmsg)
-	if err != nil {
-		panic(err)
-	}
-
-	cdc.RegisterConcrete(&threshold.SaveData{}, "123", nil)
-	cdc.RegisterInterface((*tss.Round)(nil),nil)
-
-	sd := &threshold.SaveData{
-		PartySaveData: &threshold.PartySaveData{
-			LocalPartySaveData: keygen.LocalPartySaveData{
-				Ks: []*big.Int{big.NewInt(10), big.NewInt(100)},
-			},
-			SortedPartyIDs:     nil,
-		},
-		ConfigSaveData: &threshold.ConfigSaveData{
-			LocalAddr: "1",
-			Peers:     nil,
-			Thresold:  3,
-		},
-	}
-	sbz, err := cdc.MarshalBinaryBare(sd)
-	if err != nil {
-		panic(err)
-	}
-	var ssd threshold.SaveData
-	err = cdc.UnmarshalBinaryBare(sbz, &ssd)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func TestTs(t *testing.T) {
-	cdc := amino.NewCodec()
-	cdc.RegisterConcrete(&ts{}, "123", nil)
-	te := &ts{Bi: big.NewInt(10)}
-	bz := cdc.MustMarshalBinaryBare(te)
-	var tes ts
-	cdc.MustUnmarshalBinaryBare(bz, &tes)
-	fmt.Println(tes)
-	bz, _ = json.Marshal(te)
-	json.Unmarshal(bz, &tes)
-	fmt.Println(tes)
-}
-
+//测试从文件中读取saveData
 func TestReadKeygenData(t *testing.T) {
 	root := "../threshold/test"
 	file1 := "keygen_data_0.json"
@@ -204,7 +140,13 @@ func TestReadKeygenData(t *testing.T) {
 	var sdt1, sdt2 keygen.LocalPartySaveData
 	json.Unmarshal(bz1, &sdt1)
 	json.Unmarshal(bz2, &sdt2)
-	time.Sleep(1)
+}
+
+func writeConfigFile(root string, file *create.InitFiles) {
+	ioutil.WriteFile(filepath.Join(root, "config/config.toml"), file.ConfigBytes, os.ModePerm)
+	ioutil.WriteFile(filepath.Join(root, "config/node_key.json"), file.NodeKeyBytes, os.ModePerm)
+	ioutil.WriteFile(filepath.Join(root, "config/priv_validator_key.json"), file.PrivValidatorKeyBytes, os.ModePerm)
+	ioutil.WriteFile(filepath.Join(root, "data/priv_validator_state.json"), file.PrivValidatorStateBytes, os.ModePerm)
 }
 
 func start3node(t *testing.T) (n, n2, n3 *Node){
@@ -248,7 +190,6 @@ func getNewNode(root string) *Node {
 	}
 	return n
 }
-
 
 func getConfig(root string) (*config.Config, error) {
 	path := filepath.Join(root, "config/config.toml")

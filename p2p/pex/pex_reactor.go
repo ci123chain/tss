@@ -231,7 +231,7 @@ func (r *PEXReactor) Receive(chID byte, src Peer, msgBytes []byte) {
 		r.Switch.StopPeerForError(src, err)
 		return
 	}
-	r.Logger.Debug("Received message", "src", src, "chId", chID, "msg", msg)
+	//r.Logger.Debug("Received message", "src", src, "chId", chID, "msg", msg)
 
 	switch msg := msg.(type) {
 	case *pexRequestMessage:

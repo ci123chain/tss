@@ -493,7 +493,7 @@ func (sw *Switch) dialPeersAsync(netAddrs []*NetAddress) {
 				return
 			}
 
-			sw.randomSleep(0)
+			//sw.randomSleep(0)
 
 			err := sw.DialPeerWithAddress(addr)
 			if err != nil {
@@ -640,7 +640,6 @@ func (sw *Switch) acceptRoutine() {
 			continue
 		}
 
-		sw.Logger.Error("enter addpeer from accept", "node", sw.nodeInfo.ID())
 		if err := sw.addPeer(p); err != nil {
 			sw.transport.Cleanup(p)
 			if p.IsRunning() {
@@ -700,7 +699,6 @@ func (sw *Switch) addOutboundPeerWithConfig(
 		return err
 	}
 
-	sw.Logger.Error("enter addpeer from out", "node", sw.nodeInfo.ID())
 	if err := sw.addPeer(p); err != nil {
 		sw.transport.Cleanup(p)
 		if p.IsRunning() {
@@ -786,7 +784,7 @@ func (sw *Switch) addPeer(p Peer) error {
 		reactor.AddPeer(p)
 	}
 
-	sw.Logger.Info("Added peer", "peer", p)
+	sw.Logger.Info("Added peer", "peer", p, "localnode", sw.nodeInfo.ID())
 	sw.Logger.Debug("switch peer", "list", sw.peers.list, "localnode", sw.nodeInfo.ID())
 	return nil
 }

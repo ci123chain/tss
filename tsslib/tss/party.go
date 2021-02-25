@@ -79,6 +79,9 @@ func (p *BaseParty) ValidateMessage(msg ParsedMessage) (bool, *Error) {
 }
 
 func (p *BaseParty) String() string {
+	if p.rnd == nil {
+		return fmt.Sprintf("no round")
+	}
 	return fmt.Sprintf("round: %d", p.round().RoundNumber())
 }
 
