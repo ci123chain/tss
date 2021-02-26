@@ -7,7 +7,7 @@ import (
 	"CipherMachine/store"
 	"CipherMachine/tsslib/common"
 	"CipherMachine/tsslib/ecdsa/keygen"
-	"math/rand"
+	"crypto/ecdsa"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,7 +16,6 @@ import (
 	//"CipherMachine/tsslib/ecdsa/resharing"
 	"CipherMachine/tsslib/ecdsa/signing"
 	"CipherMachine/tsslib/tss"
-	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -171,8 +170,8 @@ func (tsr *TssReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		if !tsr.signingRSwitch[msg.Sid] {
 			x := new(big.Int)
 			x.SetBytes(msg.Msg)
-			if err := tsr.Signing(x, msg.Sid); err != nil {
-				tsr.Logger.Error("signing err", err)
+			if _, err := tsr.Signing(x, msg.Sid); err != nil {
+				tsr.Logger.Error("signing err", "error", err)
 				return
 			}
 		}
@@ -206,9 +205,10 @@ func (tsr *TssReactor) InitPeer(peer p2p.Peer) p2p.Peer {
 }
 
 //keygen initiator function
-func (tsr *TssReactor) Keygen(threshold int, sid SessionID) {
+func (tsr *TssReactor) Keygen(threshold int, sid SessionID) chan struct{}{
 	if 	tsr.localParty[sid] != nil {
-		return
+		tsr.Logger.Error("sid exists")
+		return nil
 	}
 
 	//prepare keygen params
@@ -244,11 +244,12 @@ func (tsr *TssReactor) Keygen(threshold int, sid SessionID) {
 		}
 	}(localParty)
 
-	go tsr.keygenRoutine(partyIndex, localParty, pIDs, sid, threshold)
-	return
+	resCh := make(chan struct{})
+	go tsr.keygenRoutine(partyIndex, localParty, pIDs, sid, threshold, resCh)
+	return resCh
 }
 
-func (tsr *TssReactor) keygenRoutine(partyIndex int, party *keygen.LocalParty, pIDs tss.SortedPartyIDs, sid SessionID, threshold int) {
+func (tsr *TssReactor) keygenRoutine(partyIndex int, party *keygen.LocalParty, pIDs tss.SortedPartyIDs, sid SessionID, threshold int, resCh chan struct{}) {
 	if tsr.keygenRSwitch[sid] {
 		return
 	}
@@ -261,6 +262,7 @@ func (tsr *TssReactor) keygenRoutine(partyIndex int, party *keygen.LocalParty, p
 		select {
 		case err := <- tsr.keygenCh[sid].errCh:
 			tsr.Logger.Error("keygen error", err)
+			close(resCh)
 			return
 
 		case msg := <- tsr.keygenCh[sid].outCh:
@@ -297,34 +299,22 @@ func (tsr *TssReactor) keygenRoutine(partyIndex int, party *keygen.LocalParty, p
 				//ResharingParty: nil,
 			}
 			tsr.saveDatas[sid] = saveData
-			//psd := cdc.MustMarshalBinaryBare(saveData)
 			psd, _ := json.Marshal(saveData)
 			tsr.tssStore.Set(tsr.newPrefixKey(SaveDataKey, sid), psd)
-			//psdd := tsr.tssStore.Get(tsr.newPrefixKey(SaveDataKey, sid))
-			//var saveDatad SaveData
-			//if err := cdc.UnmarshalBinaryBare(psdd, &saveDatad); err != nil {
-			//	panic(err)
-			//}
-			var saveDatad SaveData
-			if err := json.Unmarshal(psd, &saveDatad); err != nil {
-				panic(err)
-			}
-			if !reflect.DeepEqual(saveData, saveDatad) {
-				panic("unmarshal failed")
-			}
 			tsr.Logger.Info(fmt.Sprintf("sid: %s:keygen done", sid))
+			close(resCh)
 			return
 		}
 	}
 }
 
 //signing initiator function
-func (tsr *TssReactor) Signing(msg *big.Int, sid SessionID) error {
+func (tsr *TssReactor) Signing(msg *big.Int, sid SessionID) (chan common.SignatureData, error) {
 	if err := tsr.getSaveData(sid); err != nil {
-		return err
+		return nil, err
 	}
 	if err := tsr.validateSaveData(sid); err != nil {
-		return err
+		return nil, err
 	}
 
 	signPIDs := tsr.saveDatas[sid].PartySaveData.SortedPartyIDs
@@ -360,11 +350,12 @@ func (tsr *TssReactor) Signing(msg *big.Int, sid SessionID) error {
 		}
 	}(localParty)
 
-	go tsr.signingRoutine(msg, localParty, sid)
-	return nil
+	resCh := make(chan common.SignatureData)
+	go tsr.signingRoutine(msg, localParty, sid, resCh)
+	return resCh, nil
 }
 
-func (tsr *TssReactor) signingRoutine(msg *big.Int, party *signing.LocalParty, sid SessionID) {
+func (tsr *TssReactor) signingRoutine(msg *big.Int, party *signing.LocalParty, sid SessionID, resCh chan common.SignatureData) {
 	if tsr.signingRSwitch[sid] {
 		return
 	}
@@ -398,30 +389,42 @@ func (tsr *TssReactor) signingRoutine(msg *big.Int, party *signing.LocalParty, s
 
 		case signature := <-tsr.signingCh[sid].endCh:
 			tsr.Logger.Info(fmt.Sprintf("Done. Received signature data"))
-			sigr := signature.R
-			sigR := big.NewInt(0)
-			sigR.SetBytes(sigr)
-
-			sums := signature.S
-			sumS := big.NewInt(0)
-			sumS.SetBytes(sums)
-
-			// BEGIN ECDSA verify
-			pkX, pkY := tsr.saveDatas[sid].PartySaveData.LocalPartySaveData.ECDSAPub.X(), tsr.saveDatas[sid].PartySaveData.LocalPartySaveData.ECDSAPub.Y()
-			pk := ecdsa.PublicKey{
-				Curve: tss.EC(),
-				X:     pkX,
-				Y:     pkY,
-			}
-			ok := ecdsa.Verify(&pk, msg.Bytes(), sigR, sumS)
-			if !ok {
-				tsr.Logger.Info("ECDSA verify failed.")
-			}
-			tsr.Logger.Info("ECDSA signing done.")
-			// END ECDSA verify
+			resCh <- signature
 			return
 		}
 	}
+}
+
+
+func (tsr *TssReactor) Verify(msg *big.Int, sid SessionID, signature common.SignatureData) error{
+	if err := tsr.getSaveData(sid); err != nil {
+		return err
+	}
+
+	sigr := signature.R
+	sigR := new(big.Int)
+	sigR.SetBytes(sigr)
+
+	sums := signature.S
+	sumS := new(big.Int)
+	sumS.SetBytes(sums)
+
+	// BEGIN ECDSA verify
+	pkX, pkY := tsr.saveDatas[sid].PartySaveData.LocalPartySaveData.ECDSAPub.X(), tsr.saveDatas[sid].PartySaveData.LocalPartySaveData.ECDSAPub.Y()
+	pk := ecdsa.PublicKey{
+		Curve: tss.EC(),
+		X:     pkX,
+		Y:     pkY,
+	}
+	ok := ecdsa.Verify(&pk, msg.Bytes(), sigR, sumS)
+	if !ok {
+		err := errors.New("ECDSA verify failed.")
+		tsr.Logger.Error(err.Error())
+		return err
+	}
+	tsr.Logger.Info("verify success!")
+	// END ECDSA verify
+	return nil
 }
 
 //todo: resharing initiator function
@@ -479,7 +482,7 @@ func (tsr *TssReactor) getSaveData(sid SessionID) error {
 			return err
 		}
 		tsr.saveDatas[sid] = saveData
-		tryWriteTestFixtureFile(rand.Int()+2, saveData.PartySaveData.LocalPartySaveData)
+		//tryWriteTestFixtureFile(rand.Int()+2, saveData.PartySaveData.LocalPartySaveData)
 		return nil
 	}
 	return errors.New("No SaveData")

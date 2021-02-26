@@ -2,6 +2,7 @@ package node
 
 import (
 	"CipherMachine/config"
+	"CipherMachine/threshold"
 	"CipherMachine/tsslib/ecdsa/keygen"
 	"encoding/json"
 	create "github.com/ci123chain/ci123chain/sdk/init"
@@ -53,14 +54,6 @@ func TestPrepare3peersConfig(t *testing.T) {
 	writeConfigFile(root3, initFiles3)
 }
 
-//本地启动3个节点
-func Test3NodeStartWithConfig(t *testing.T) {
-	n, _, _ := start3node(t)
-	select {
-	case <-n.Quit():
-	}
-}
-
 //本地启动节点1
 func TestRunNode1(t *testing.T) {
 	root1 := "../test1"
@@ -70,8 +63,11 @@ func TestRunNode1(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("Started node %v", n.sw.NodeInfo())
 
+	go n.Stop()
+
 	select {
 	case <-n.Quit():
+	case <-time.After(5 * time.Second):
 	}
 }
 
@@ -84,8 +80,11 @@ func TestRunNode2(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("Started node %v", n2.sw.NodeInfo())
 
+	go n2.Stop()
+
 	select {
 	case <-n2.Quit():
+	case <-time.After(5 * time.Second):
 	}
 }
 
@@ -98,8 +97,11 @@ func TestRunNode3(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("Started node %v", n3.sw.NodeInfo())
 
+	go n3.Stop()
+
 	select {
 	case <-n3.Quit():
+	case <-time.After(5 * time.Second):
 	}
 }
 
@@ -107,10 +109,18 @@ func TestRunNode3(t *testing.T) {
 func TestKeygen(t *testing.T) {
 	n, _, _ := start3node(t)
 	time.Sleep(10 * time.Second)
-	n.Keygen(2, "1")
+	sessionID := threshold.SessionID("session-1")
+
+	//传入门限数和sessionID
+	resCh := n.Keygen(2, sessionID)
+	if resCh == nil {
+		return
+	}
 
 	select {
-	case <-n.Quit():
+	case <-resCh:
+		//wait for n2, n3 done, just for test
+		time.Sleep(2 * time.Second)
 	}
 }
 
@@ -118,13 +128,15 @@ func TestKeygen(t *testing.T) {
 func TestSigning(t *testing.T) {
 	n, _, _ := start3node(t)
 	time.Sleep(10 * time.Second)
-	err := n.Signing(big.NewInt(42), "1")
-	if err != nil {
-		panic(err)
-	}
+	sessionID := threshold.SessionID("session-1")
+	msg := big.NewInt(42)
+	resCh, err := n.Signing(msg, sessionID)
+	require.NoError(t, err)
 
 	select {
-	case <-n.Quit():
+	case signature := <-resCh:
+		err := n.Verify(msg, sessionID, signature)
+		require.NoError(t, err)
 	}
 }
 

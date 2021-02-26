@@ -1,6 +1,7 @@
 package node
 
 import (
+	"CipherMachine/tsslib/common"
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
@@ -363,14 +364,22 @@ func (n *Node) NodeInfo() p2p.NodeInfo {
 }
 
 // Keygen exported, used in client
-func (n *Node) Keygen(shares int, sid threshold.SessionID) {
-	n.sw.Reactor("tss").(*threshold.TssReactor).Keygen(shares, sid)
-	return
+func (n *Node) Keygen(shares int, sid threshold.SessionID) chan struct{}{
+	return n.sw.Reactor("tss").(*threshold.TssReactor).Keygen(shares, sid)
 }
 
 // Signing exported, used in client
-func (n *Node) Signing(msg *big.Int, sid threshold.SessionID) error {
-	if err := n.sw.Reactor("tss").(*threshold.TssReactor).Signing(msg, sid); err != nil {
+func (n *Node) Signing(msg *big.Int, sid threshold.SessionID) (chan common.SignatureData, error) {
+	resCh, err := n.sw.Reactor("tss").(*threshold.TssReactor).Signing(msg, sid)
+	if err != nil {
+		return nil, err
+	}
+	return resCh, nil
+}
+
+// Verify exported, used in client
+func (n *Node) Verify(msg *big.Int, sid threshold.SessionID, signature common.SignatureData) error {
+	if err := n.sw.Reactor("tss").(*threshold.TssReactor).Verify(msg, sid, signature); err != nil {
 		return err
 	}
 	return nil
