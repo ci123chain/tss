@@ -24,6 +24,7 @@ writeConfigFile(root3, initFiles3)
 
 
 2.启动p2p节点。    
+
 ```
 cfg, err := getConfig(root)
 if err != nil {
@@ -42,6 +43,7 @@ err := n.Start()
 ```
 
 3.等待节点连接后调用node.keygen方法。传入sessionID（密码唯一区分id）和门限数threshold（大于等于1/2节点数，小于节点数）。      
+
 ```
 //传入门限数和sessionID
 resCh := n.Keygen(2, sessionID)
@@ -57,6 +59,7 @@ case <-resCh:
 ```
 
 4.keygen done完成后，调用node.signing方法，传入和初始化相同的sessionID和需签名的数据msg。 
+
 ```
 sessionID := threshold.SessionID("session-1")
 msg := big.NewInt(42)
@@ -65,6 +68,7 @@ require.NoError(t, err)
 ```
 
 5.获取到signature后进行verify，验证通过则签名完成。
+
 ```
 select {
 case signature := <-resCh:
