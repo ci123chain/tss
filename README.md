@@ -2,7 +2,7 @@
 
 注：当前版本暂未实现密钥重组。
 
-##使用流程：
+## 使用流程：
 1.生成p2p节点config文件。 （已生成好的模版在test1、test2、test3文件夹，如再次生成用来本地多节点测试需要手动修改config.toml中的相应port）
 
 ```	
@@ -73,5 +73,5 @@ case signature := <-resCh:
 }
 ```
 
-##具体使用
+## 具体使用
 见node/node_test.go
